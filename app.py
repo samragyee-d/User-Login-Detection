@@ -4,7 +4,8 @@ from xgboost import XGBClassifier
 from sklearn.model_selection import train_test_split
 
 
-df = pd.read_csv('rba-dataset.csv', nrows=1000)
+df = pd.read_csv('rba-dataset.csv', nrows=10000)
+
 
 df['Country'] = df['Country'].astype('category')
 df['User Agent String'] = df['User Agent String'].astype('category')
