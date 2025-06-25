@@ -4,7 +4,10 @@ from xgboost import XGBClassifier
 from sklearn.model_selection import train_test_split
 
 
-df = pd.read_csv('rba-dataset.csv', nrows=10000)
+df = pd.read_csv('rba-dataset.csv', nrows=1000)
+df['Login Timestamp'] = pd.to_datetime(df['Login Timestamp'])
+
+
 
 
 df['Country'] = df['Country'].astype('category')
@@ -13,7 +16,6 @@ df['IP Address'] = df['IP Address'].astype('category')
 
 X = df[['IP Address', 'Country', 'User Agent String']]
 y = df['Is Attack IP']
-
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
