@@ -78,11 +78,10 @@ for i, ip in enumerate(df_public['IP Address']):
     info = get_ip_info(ip)
     results.append(info)
     print(f"{i+1}/{len(df_public)} - {ip}: {info['country']}, {info['region']}, {info['city']}, {info['isp']}")
-    time.sleep(0.2)  # throttle
+    time.sleep(1.4)  # throttle
 
 # Add results to filtered DataFrame
 df_public = pd.concat([df_public, pd.DataFrame(results)], axis=1)
 
 # Save final result
 #df_public.to_csv("public_ip_info_output.csv", index=False)
-
