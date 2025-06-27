@@ -26,7 +26,7 @@ for value in column_a:
     timestamps = df['Login Timestamp']
     IPAddress = df['IP Address']
     IPAddress = ipaddress.ip_address(IPAddress)
-    if IPAddress in classA or IPAddress in classB or IPAddress in classC:
+    if IPAddress in networkA or IPAddress in networkA or IPAddress in networkA:
         print(f"{IPAddress} is in public")
 else:
     print(f"{IPAddress} is private")
