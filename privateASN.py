@@ -51,8 +51,6 @@ def isPrivateIP(ip_str):
 
 asn_df = df = df[['ASN']]
     
-
-    
 def get_asn_info(asn):
     url = f"https://api.bgpview.io/asn/{asn}"
     try:
@@ -71,6 +69,21 @@ def get_asn_info(asn):
     except Exception as e:
         print(f"Request failed for ASN {asn}: {e}")
     return None
+
+
+asn_info_list = []
+unique_asns = asn_df['ASN'].dropna()
+
+for asn in unique_asns:
+    try:
+        asn = int(asn)
+        info = get_asn_info(asn)
+        if info:
+            asn_info_list.append(info)
+            print(info)
+        time.sleep(1.2)  # be nice to the API
+    except ValueError:
+        print(f"Invalid ASN: {asn}")
 
 if(isPrivateIP):
     get_asn_info(asn_df)
