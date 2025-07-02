@@ -122,8 +122,6 @@ def geocode_address(address_list):
 
     print(f"Geocoding failed for: {full_address}")
     return {"lat": None, "lon": None}
-
-
     
 
 for asn in unique_asns:
