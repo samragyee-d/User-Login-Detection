@@ -70,7 +70,7 @@ def get_ip_info(ip):
                 "region": data["regionName"],
                 "city": data["city"],
                 "isp": data["isp"],
-                "lat": data.get("lat", ""),
+                "lat": data["lat"],
                 "lon": data["lon"]
             }
         else:
@@ -91,26 +91,3 @@ df_public = pd.concat([df_public, pd.DataFrame(results)], axis=1)
 
 # Save final result
 #df_public.to_csv("public_ip_info_output.csv", index=False
-
-def get_asn_info(asn):
-    url = f"https://api.bgpview.io/asn/{asn}"
-    try:
-        response = requests.get(url, timeout=5)
-        if response.status_code == 200:
-            data = response.json()['data']
-            return {
-                "asn": data["asn"],
-                "name": data.get("name"),
-                "description": data.get("description"),
-                "country": data.get("country_code")
-            }
-        else:
-            print(f"Error {response.status_code} for ASN {asn}")
-    except Exception as e:
-        print(f"Request failed for ASN {asn}: {e}")
-    return None
-
-# Example usage:
-asn_info = get_asn_info(29695)
-print(asn_info)
-

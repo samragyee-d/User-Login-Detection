@@ -73,16 +73,49 @@ def get_asn_info(asn):
 asn_info_list = []
 unique_asns = asn_df['ASN'].dropna()
 
+asn_info_list = []
+
+if(isPrivateIP):
+    get_asn_info(asn_df)
+
+
+def geocode_address(address_list):
+    address_str = ', '.join(address_list)
+    url = f"https://nominatim.openstreetmap.org/search"
+    params = {
+        'q': address_str,
+        'format': 'json',
+        'limit': 1
+    }
+    headers = {
+        'User-Agent': 'ASN-Geocoder/1.0'
+    }
+    
+    try:
+        response = requests.get(url, params=params, headers=headers, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        if data:
+            return {
+                "lat": data[0]["lat"],
+                "lon": data[0]["lon"]
+            }
+        else:
+            return {"lat": None, "lon": None}
+    except Exception as e:
+        print(f"Geocoding failed for address {address_str}: {e}")
+        return {"lat": None, "lon": None}
+    
+
 for asn in unique_asns:
     try:
         asn = int(asn)
         info = get_asn_info(asn)
         if info:
+            coords = geocode_address(info['owner_address'])
+            info.update(coords)
             asn_info_list.append(info)
             print(info)
-        time.sleep(1.2)  # be nice to the API
+        time.sleep(1.5)  # be nice to both APIs
     except ValueError:
         print(f"Invalid ASN: {asn}")
-
-if(isPrivateIP):
-    get_asn_info(asn_df)
