@@ -54,9 +54,12 @@ def isPrivateIP(ip_str):
 df_public = df[~df['IP Address'].apply(isPrivateIP)].copy()
 df_public.reset_index(drop=True, inplace=True)
 
+lat = ' '
+lon = ' '
+
 # API lookup function
 def get_ip_info(ip):
-    url = f"http://ip-api.com/json/{ip}?fields=status,message,country,regionName,city,isp"
+    url = f"http://ip-api.com/json/{ip}?fields=status,message,country,regionName,city,isp,lat,lon"
     try:
         response = requests.get(url, timeout=5)
         data = response.json()
@@ -65,23 +68,48 @@ def get_ip_info(ip):
                 "country": data["country"],
                 "region": data["regionName"],
                 "city": data["city"],
-                "isp": data["isp"]
+                "isp": data["isp"],
+                "lat": data["lat"],
+                "lon": data["lon"]
             }
         else:
-            return {"country": "Error", "region": "", "city": "", "isp": data.get("message", "unknown")}
+            return {"country": "Error", "region": "", "city": "", "isp": "", "lat": "", "lon": data.get("message", "unknown")}
     except Exception as e:
-        return {"country": "Error", "region": "", "city": "", "isp": str(e)}
+            return {"country": "Error", "region": "", "city": "", "isp": "", "lat": "", "lon": str(e)}
 
 # Query public IPs
 results = []
 for i, ip in enumerate(df_public['IP Address']):
     info = get_ip_info(ip)
     results.append(info)
-    print(f"{i+1}/{len(df_public)} - {ip}: {info['country']}, {info['region']}, {info['city']}, {info['isp']}")
+    print(f"{i+1}/{len(df_public)} - {ip}: {info['country']}, {info['region']}, {info['city']}, {info['isp']}, {info['lat']}, {info['lon']}")
     time.sleep(1.4)  # throttle
 
 # Add results to filtered DataFrame
 df_public = pd.concat([df_public, pd.DataFrame(results)], axis=1)
 
 # Save final result
-#df_public.to_csv("public_ip_info_output.csv", index=False)
+#df_public.to_csv("public_ip_info_output.csv", index=False
+
+def get_asn_info(asn):
+    url = f"https://api.bgpview.io/asn/{asn}"
+    try:
+        response = requests.get(url, timeout=5)
+        if response.status_code == 200:
+            data = response.json()['data']
+            return {
+                "asn": data["asn"],
+                "name": data.get("name"),
+                "description": data.get("description"),
+                "country": data.get("country_code")
+            }
+        else:
+            print(f"Error {response.status_code} for ASN {asn}")
+    except Exception as e:
+        print(f"Request failed for ASN {asn}: {e}")
+    return None
+
+# Example usage:
+asn_info = get_asn_info(29695)
+print(asn_info)
+
