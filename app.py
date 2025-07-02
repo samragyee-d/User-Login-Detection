@@ -54,6 +54,7 @@ def isPrivateIP(ip_str):
 df_public = df[~df['IP Address'].apply(isPrivateIP)].copy()
 df_public.reset_index(drop=True, inplace=True)
 
+#figure out how to store variables
 lat = ' '
 lon = ' '
 
@@ -69,7 +70,7 @@ def get_ip_info(ip):
                 "region": data["regionName"],
                 "city": data["city"],
                 "isp": data["isp"],
-                "lat": data["lat"],
+                "lat": data.get("lat", ""),
                 "lon": data["lon"]
             }
         else:
