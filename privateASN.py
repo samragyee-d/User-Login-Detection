@@ -80,31 +80,50 @@ if(isPrivateIP):
 
 
 def geocode_address(address_list):
-    address_str = ', '.join(address_list)
-    url = f"https://nominatim.openstreetmap.org/search"
-    params = {
-        'q': address_str,
-        'format': 'json',
-        'limit': 1
-    }
-    headers = {
-        'User-Agent': 'ASN-Geocoder/1.0'
-    }
-    
-    try:
-        response = requests.get(url, params=params, headers=headers, timeout=10)
-        response.raise_for_status()
-        data = response.json()
-        if data:
-            return {
-                "lat": data[0]["lat"],
-                "lon": data[0]["lon"]
-            }
-        else:
-            return {"lat": None, "lon": None}
-    except Exception as e:
-        print(f"Geocoding failed for address {address_str}: {e}")
-        return {"lat": None, "lon": None}
+    # Step 1: Clean and format full address
+    cleaned = list(dict.fromkeys([a.strip().title() for a in address_list if a.strip()]))
+    full_address = ', '.join(cleaned)
+
+    def query_nominatim(q):
+        url = "https://nominatim.openstreetmap.org/search"
+        params = {'q': q, 'format': 'json', 'limit': 1}
+        headers = {'User-Agent': 'ASN-Geocoder/1.0'}
+        try:
+            response = requests.get(url, params=params, headers=headers, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            if data:
+                return {"lat": data[0]["lat"], "lon": data[0]["lon"]}
+        except Exception as e:
+            print(f"Geocoding error for '{q}': {e}")
+        return None
+
+    # Try full address first
+    coords = query_nominatim(full_address)
+    if coords:
+        return coords
+
+    # Step 2: Retry with simplified fallback (city + country)
+    city = None
+    country = None
+    for part in reversed(cleaned):
+        if part.isalpha() and len(part) >= 3:
+            if not country:
+                country = part
+            elif not city:
+                city = part
+                break
+    fallback = ', '.join(filter(None, [city, country]))
+    if fallback:
+        print(f"Retrying with fallback address: {fallback}")
+        coords = query_nominatim(fallback)
+        if coords:
+            return coords
+
+    print(f"Geocoding failed for: {full_address}")
+    return {"lat": None, "lon": None}
+
+
     
 
 for asn in unique_asns:
