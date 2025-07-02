@@ -60,7 +60,6 @@ def get_asn_info(asn):
             return {
                 "asn": data["asn"],
                 "name": data.get("name"),
-                "description": data.get("description"),
                 "country": data.get("country_code"),
                 "owner_address": data.get("owner_address")
             }
