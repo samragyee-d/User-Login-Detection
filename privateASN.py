@@ -30,7 +30,7 @@ privateIP = ''
 publicIP = ' '
 
 
-#iterating throw user logs
+
 for i, row in df.iterrows():
     ip_str = row['IP Address']
     try:
@@ -50,7 +50,9 @@ def isPrivateIP(ip_str):
         return True
 
 asn_df = df = df[['ASN']]
-    
+
+country = ''
+
 def get_asn_info(asn):
     url = f"https://api.bgpview.io/asn/{asn}"
     try:
@@ -79,6 +81,27 @@ if(isPrivateIP):
     get_asn_info(asn_df)
 
 
+def attachLat(address_list):
+    cleaned = list(dict.fromkeys([a.strip().title() for a in address_list if a.strip()]))
+    full_address = ', '.join(cleaned)
+    def query_nominatim(q):
+        url = "https://nominatim.openstreetmap.org/search"
+        params = {'q': q, 'format': 'json', 'limit': 1}
+        headers = {'User-Agent': 'ASN-Geocoder/1.0'}
+        try:
+            response = requests.get(url, params=params, headers=headers, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            if data:
+                new_column_values = [item.get('lat') for item in data]
+                df['Latitude'] = new_column_values
+                df.to_csv(df, index=False)
+                print("CSV file updated successfully!")
+
+        except Exception as e:
+             print(f"Error fetching data from API: {response.status_code}")
+        return None
+
 def geocode_address(address_list):
     # Step 1: Clean and format full address
     cleaned = list(dict.fromkeys([a.strip().title() for a in address_list if a.strip()]))
@@ -98,12 +121,12 @@ def geocode_address(address_list):
             print(f"Geocoding error for '{q}': {e}")
         return None
 
-    # Try full address first
+   
     coords = query_nominatim(full_address)
     if coords:
         return coords
 
-    # Step 2: Retry with simplified fallback (city + country)
+    
     city = None
     country = None
     for part in reversed(cleaned):
@@ -123,6 +146,8 @@ def geocode_address(address_list):
     print(f"Geocoding failed for: {full_address}")
     return {"lat": None, "lon": None}
     
+
+
 
 for asn in unique_asns:
     try:
