@@ -1,57 +1,31 @@
 import pandas as pd
-import numpy as np
-from sklearn.model_selection import train_test_split
 import ipaddress
 import requests
 import time
 
-#defining dataset
+# Load dataset
 df = pd.read_csv('rba-dataset.csv', nrows=1000)
+print(df.head())  # Optional, remove if you want no prints
 
-#defining main column
-column_a = df['User ID']
-
-#setting up IP conversion variables:
-classA = '10.0.0.0/8'
-classB = '172.16.0.0/12'
-classC = '192.168.0.0/16'
-
+# IP private networks
 private_networks = [
     ipaddress.IPv4Network('10.0.0.0/8'),
     ipaddress.IPv4Network('172.16.0.0/12'),
     ipaddress.IPv4Network('192.168.0.0/16')
 ]
 
-networkA = ipaddress.IPv4Network(classA)
-networkB = ipaddress.IPv4Network(classB)
-networkC = ipaddress.IPv4Network(classC)
-
-privateIP = ''
-publicIP = ' '
-
-
-
-for i, row in df.iterrows():
-    ip_str = row['IP Address']
-    try:
-        ip_obj = ipaddress.ip_address(ip_str)
-        if ip_obj in networkA or ip_obj in networkB or ip_obj in networkC:
-            privateIP = ip_obj
-        else:
-            publicIP = ip_obj
-    except ValueError:
-        print(f"{ip_str} is invalid")
-
 def isPrivateIP(ip_str):
     try:
         ip_obj = ipaddress.ip_address(ip_str)
         return any(ip_obj in net for net in private_networks)
     except ValueError:
-        return True
+        return True  # treat invalid IPs as private (or you can change this)
 
-asn_df = df = df[['ASN']]
+# Extract ASN column for processing (do NOT overwrite df)
+asn_df = df[['ASN']].copy()
 
-country = ''
+# Get unique ASN values skipping NaN
+unique_asns = asn_df['ASN'].dropna().unique()
 
 def get_asn_info(asn):
     url = f"https://api.bgpview.io/asn/{asn}"
@@ -71,39 +45,8 @@ def get_asn_info(asn):
         print(f"Request failed for ASN {asn}: {e}")
     return None
 
-
-asn_info_list = []
-unique_asns = asn_df['ASN'].dropna()
-
-asn_info_list = []
-
-if(isPrivateIP):
-    get_asn_info(asn_df)
-
-
-def attachLat(address_list):
-    cleaned = list(dict.fromkeys([a.strip().title() for a in address_list if a.strip()]))
-    full_address = ', '.join(cleaned)
-    def query_nominatim(q):
-        url = "https://nominatim.openstreetmap.org/search"
-        params = {'q': q, 'format': 'json', 'limit': 1}
-        headers = {'User-Agent': 'ASN-Geocoder/1.0'}
-        try:
-            response = requests.get(url, params=params, headers=headers, timeout=10)
-            response.raise_for_status()
-            data = response.json()
-            if data:
-                new_column_values = [item.get('lat') for item in data]
-                df['Latitude'] = new_column_values
-                df.to_csv(df, index=False)
-                print("CSV file updated successfully!")
-
-        except Exception as e:
-             print(f"Error fetching data from API: {response.status_code}")
-        return None
-
 def geocode_address(address_list):
-    # Step 1: Clean and format full address
+    # Clean and format address
     cleaned = list(dict.fromkeys([a.strip().title() for a in address_list if a.strip()]))
     full_address = ', '.join(cleaned)
 
@@ -121,12 +64,11 @@ def geocode_address(address_list):
             print(f"Geocoding error for '{q}': {e}")
         return None
 
-   
     coords = query_nominatim(full_address)
     if coords:
         return coords
 
-    
+    # Fallback: try city and country only
     city = None
     country = None
     for part in reversed(cleaned):
@@ -145,19 +87,22 @@ def geocode_address(address_list):
 
     print(f"Geocoding failed for: {full_address}")
     return {"lat": None, "lon": None}
-    
 
-
-
+# Collect ASN info with lat/lon
+asn_info_list = []
 for asn in unique_asns:
     try:
         asn = int(asn)
         info = get_asn_info(asn)
         if info:
-            coords = geocode_address(info['owner_address'])
+            coords = geocode_address(info['owner_address'] if info['owner_address'] else [])
             info.update(coords)
             asn_info_list.append(info)
-            print(info)
-        time.sleep(1.5)  # be nice to both APIs
+            #print(info)
+        time.sleep(1.5)  # avoid API rate limits
     except ValueError:
         print(f"Invalid ASN: {asn}")
+
+# Convert to DataFrame and save to CSV
+asn_info_df = pd.DataFrame(asn_info_list)
+asn_info_df.to_csv("asn_info_with_lat_lon.csv", index=False)
